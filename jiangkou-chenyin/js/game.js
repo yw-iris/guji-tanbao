@@ -123,12 +123,12 @@
     wrap.id = "floatBtns";
     wrap.style.cssText = "position:fixed;bottom:22px;right:18px;z-index:100;display:flex;flex-direction:column;gap:8px;align-items:flex-end";
     wrap.innerHTML = `
-      <button id="fbHome" title="合集封面" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #c9b08a;background:linear-gradient(#232a36,#1a2029);color:#c9b08a;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">🏠</button>
-      <button id="fbHelp" title="新手引导" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #b9a6d6;background:linear-gradient(#232a36,#1a2029);color:#b9a6d6;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">❓</button>
-      <button id="fbVault" title="藏宝阁" style="width:50px;height:50px;border-radius:50%;font-size:20px;border:2px solid #e0a83e;background:linear-gradient(#232a36,#1a2029);color:#e0a83e;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">🏺</button>
-      <button id="fbWeapon" title="武器间" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #7fae8f;background:linear-gradient(#232a36,#1a2029);color:#7fae8f;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">⚔</button>
-      <button id="fbShop" title="弧光商店" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #f4cf7a;background:linear-gradient(#232a36,#1a2029);color:#f4cf7a;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">✨</button>
-      <button id="fbBoard" title="排行榜" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #4a86c7;background:linear-gradient(#232a36,#1a2029);color:#4a86c7;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">🏆</button>`;
+      <button id="fbHome" class="fb-btn fb-home" title="合集封面">🏠</button>
+      <button id="fbHelp" class="fb-btn fb-help" title="新手引导">❓</button>
+      <button id="fbVault" class="fb-btn fb-vault big" title="藏宝阁">🏺</button>
+      <button id="fbWeapon" class="fb-btn fb-weapon" title="武器间">⚔</button>
+      <button id="fbShop" class="fb-btn fb-shop" title="弧光商店">✨</button>
+      <button id="fbBoard" class="fb-btn fb-board" title="排行榜">🏆</button>`;
     document.body.appendChild(wrap);
     document.getElementById("fbHome").onclick = () => { window.location.href = COVER; };
     document.getElementById("fbHelp").onclick = () => showGuideModal();
@@ -544,7 +544,7 @@
       const r = wipe.getBoundingClientRect();
       wipe.width = r.width; wipe.height = r.height;
       const grad = ctx.createLinearGradient(0,0,r.width,r.height);
-      grad.addColorStop(0,"#3a3226"); grad.addColorStop(1,"#211c14");
+      grad.addColorStop(0,"#2a2418"); grad.addColorStop(1,"#15110a");
       ctx.globalCompositeOperation = "source-over";
       ctx.fillStyle = grad; ctx.fillRect(0,0,r.width,r.height);
       ctx.fillStyle = "rgba(120,100,70,.25)";
@@ -766,13 +766,13 @@
     m.style.cssText="position:fixed;inset:0;z-index:300;background:rgba(6,8,12,.9);display:grid;place-items:center;padding:20px";
     m.innerHTML=`
       <div style="width:100%;max-width:560px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center">
-        <canvas id="ivm3d" style="width:100%;height:340px;display:block;border-radius:12px;background:radial-gradient(120% 100% at 50% 30%,#22303f,#0c1017);cursor:grab;touch-action:none"></canvas>
+        <canvas id="ivm3d" style="width:100%;height:340px;display:block;border-radius:6px;background:radial-gradient(120% 100% at 50% 30%,#23402c,#0a0f08);cursor:grab;touch-action:none"></canvas>
         <div style="text-align:left;padding:14px 6px 6px">
           <div style="color:var(--silver-hi);font-size:20px;letter-spacing:2px">${item.name}</div>
           <div style="color:var(--dim);font-size:13px;margin:4px 0">${item.dynasty} ｜ ${item.museum}</div>
           <div style="color:var(--gold-hi);font-size:15px;margin-bottom:10px">估值 ${item.value.toLocaleString()} 两</div>
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px 14px;font-size:13px">
-            ${item.parts.map(p=>`<div style="display:flex;justify-content:space-between;border-bottom:1px dashed #2f3a48;padding:3px 0"><span style="color:var(--dim)">${p.name}</span><b style="color:${p.quality.color}">${p.quality.name}·${p.affix}</b></div>`).join("")}
+            ${item.parts.map(p=>`<div style="display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:3px 0"><span style="color:var(--paper-dim)">${p.name}</span><b style="color:${p.quality.color}">${p.quality.name}·${p.affix}</b></div>`).join("")}
           </div>
         </div>
         <button class="btn" id="closeIvm">合上</button>
@@ -1020,7 +1020,7 @@
     mv.style.cssText = "position:fixed;inset:0;z-index:350;background:rgba(6,8,12,.92);display:grid;place-items:center;padding:20px";
     mv.innerHTML = `
       <div style="width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center">
-        <canvas id="wv3d" style="width:100%;height:320px;display:block;border-radius:12px;background:radial-gradient(120% 100% at 50% 30%,#1a2a3f,#0a0f17);cursor:grab;touch-action:none"></canvas>
+        <canvas id="wv3d" style="width:100%;height:320px;display:block;border-radius:6px;background:radial-gradient(120% 100% at 50% 30%,#1d2c1f,#0a0f0c);cursor:grab;touch-action:none"></canvas>
         <div style="text-align:left;padding:12px 4px 6px">
           <div style="display:flex;align-items:center;gap:10px">
             <span style="color:var(--jade);font-size:18px;letter-spacing:2px">${w.icon} ${w.name}</span>
@@ -1066,7 +1066,7 @@
         ${rows.length===0?"<p style='color:var(--dim);text-align:center;padding:20px'>暂无记录，完成一局即上榜</p>":
           rows.map((r,i)=>`
           <div style="display:grid;grid-template-columns:36px 1fr 80px 90px 80px;gap:6px;padding:8px 4px;border-bottom:1px solid var(--line);font-size:14px;align-items:center">
-            <span style="color:${i===0?"var(--gold)":i===1?"var(--silver)":i===2?"#cd7f32":"var(--dim)"};font-weight:700">${i+1}</span>
+            <span style="color:${i===0?"var(--gold)":i===1?"var(--silver)":i===2?"var(--bronze)":"var(--paper-dim)"};font-weight:700">${i+1}</span>
             <span style="color:var(--silver-hi)">${r.name}</span>
             <span style="text-align:right;color:var(--ok)">${r.score}</span>
             <span style="text-align:right;color:var(--gold-hi)">${(r.taels||0).toLocaleString()}</span>

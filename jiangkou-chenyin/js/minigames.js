@@ -661,7 +661,7 @@
 
     flashHint(text, ok) {
       this.hintEl.textContent = text;
-      this.hintEl.style.color = ok ? "var(--ok)" : "#f3b0a2";
+      this.hintEl.style.color = ok ? "var(--ok)" : "var(--cinnabar-l)";
       this.hintEl.classList.remove("flash");
       void this.hintEl.offsetWidth;
       this.hintEl.classList.add("flash");
