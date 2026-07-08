@@ -283,186 +283,299 @@ const MODEL_BUILDERS = {
   /* ===== 武器模型 ===== */
   /* 武器外观随洗练品质动态变化：品质越高，材质越华贵、宝石越多、光效越强 */
 
-  /* 錾金凿：凿体 + 刃 + 护手 */
+  /* 錾金凿：凿体 + 刃 + 护手，5 档外观 */
   w_chisel(THREE, opts) {
     const g = new THREE.Group();
     const q = Math.max(opts?.qualityLevel ?? 0, opts?.appearanceIdx ?? 0);
-    const main = wMat(THREE, 0xb8860b, q);
-    const dark = wMat(THREE, 0x2a1800, Math.max(0, q - 1));
-    // 凿杆
-    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.14,3.2,16), main);
+    const a = opts?.appearanceIdx ?? 0;  // 0 古铜 1 镀银 2 乌金 3 翡翠 4 龙纹赤金
+    const gold = wMat(THREE, 0xe0a83e, q);
+    const jade = new THREE.MeshStandardMaterial({ color: 0x5aa469, roughness: 0.12, metalness: 0.6, emissive: 0x5aa469, emissiveIntensity: 0.35 });
+    const silver = wMat(THREE, 0xc9d2dc, q);
+    const darkBronze = wMat(THREE, 0x2a1800, Math.max(0, q - 1));
+    const iron = wMat(THREE, 0x3a2a1a, Math.max(0, q - 1));
+    // 杆身基础（细长 4:1 比例）
+    const rodLen = a >= 4 ? 4.0 : a >= 2 ? 3.6 : 3.2;
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.13, rodLen, 16), a >= 1 ? silver : iron);
     g.add(rod);
-    // 凿刃（楔形）——高品质刃更亮
+    // 杆身装饰（按档叠加）
+    if (a >= 1) { // 刻纹带
+      [-1.2, -0.4, 0.4, 1.2].forEach(y => {
+        const r = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.025, 8, 16), gold);
+        r.position.y = y; r.rotation.x = Math.PI / 2; g.add(r);
+      });
+    }
+    if (a >= 2) { // 螭龙纹螺旋
+      const spiral = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.018, 6, 40), gold);
+      spiral.position.y = -0.4; spiral.rotation.x = Math.PI / 3; g.add(spiral);
+      const spiral2 = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.018, 6, 40), gold);
+      spiral2.position.y = 0.4; spiral2.rotation.x = -Math.PI / 3; g.add(spiral2);
+    }
+    if (a >= 3) { // 翡翠腰环 + 杆身浮雕龙纹
+      const jRing = new THREE.Mesh(new THREE.TorusGeometry(0.18, 0.04, 8, 16), jade);
+      jRing.position.y = 0; jRing.rotation.x = Math.PI / 2; g.add(jRing);
+    }
+    if (a >= 4) { // 满工：双龙头+贯穿杆身
+      [-1.0, 1.0].forEach(y => {
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), gold);
+        head.position.set(0, y, 0.14); g.add(head);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6),
+          new THREE.MeshStandardMaterial({ color: 0xff4444, roughness: 0.05, metalness: 0.4, emissive: 0xff4444, emissiveIntensity: 0.7 }));
+        eye.position.set(0, y + 0.04, 0.18); g.add(eye);
+      });
+    }
+    // 凿刃（鎏金镶边，细长楔形）
+    const bladeColor = a >= 4 ? 0xfff4d0 : a >= 2 ? 0xe0c880 : 0xd4af37;
     const bladeMat = new THREE.MeshStandardMaterial({
-      color: q >= 3 ? 0xfff4d0 : 0xd4af37, roughness: Math.max(0.05, 0.2 - q * 0.03),
-      metalness: 1.0, emissive: q >= 4 ? 0xe0a83e : 0x000000, emissiveIntensity: q >= 4 ? 0.4 : 0
+      color: bladeColor, roughness: Math.max(0.04, 0.2 - q * 0.03), metalness: 1.0,
+      emissive: q >= 4 ? 0xe0a83e : q >= 3 ? bladeColor : 0x000000, emissiveIntensity: q >= 4 ? 0.5 : q >= 3 ? 0.2 : 0
     });
-    const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.01,0.18,0.55,4), bladeMat);
-    blade.position.y = -1.87; g.add(blade);
-    // 护手
-    const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,0.12,24), main);
-    guard.position.y = 0.85; g.add(guard);
-    // 护手宝石（品质越高越多）
+    const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.2, 0.7, 4), bladeMat);
+    blade.position.y = -rodLen / 2 - 0.35; g.add(blade);
+    // 护手（如意形 + 品质越高越大）
+    const guardR = a >= 3 ? 0.38 : a >= 1 ? 0.30 : 0.24;
+    const guard = new THREE.Mesh(new THREE.CylinderGeometry(guardR, guardR, 0.14, 24), a >= 2 ? gold : iron);
+    guard.position.y = rodLen / 2 - 0.5; g.add(guard);
+    if (a >= 1) { // 护手如意云头
+      for (let i = 0; i < 4; i++) {
+        const a2 = i * Math.PI / 2;
+        const cloud = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), gold);
+        cloud.position.set(Math.sin(a2) * guardR, rodLen / 2 - 0.5, Math.cos(a2) * guardR);
+        g.add(cloud);
+      }
+    }
+    // 宝石镶嵌（护手环）
     const gemPos = [];
     for (let i = 0; i < 8; i++) {
-      const a = i / 8 * Math.PI * 2;
-      gemPos.push([Math.sin(a) * 0.25, 0.85, Math.cos(a) * 0.25]);
+      const ang = i / 8 * Math.PI * 2;
+      gemPos.push([Math.sin(ang) * guardR, rodLen / 2 - 0.5, Math.cos(ang) * guardR]);
     }
     wGems(THREE, g, gemPos, q);
-    // 凿尾帽
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.16,12,12), dark);
-    cap.position.y = 1.65; g.add(cap);
-    // 高品质加尾饰
-    if (q >= 3) {
-      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.3, 8), main);
-      tail.position.y = 1.85; g.add(tail);
+    // 尾帽
+    const capR2 = a >= 3 ? 0.18 : 0.14;
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(capR2, 12, 12), darkBronze);
+    cap.position.y = rodLen / 2 + 0.1; g.add(cap);
+    // 高品质尾饰
+    if (q >= 3 || a >= 3) {
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.35, 8), gold);
+      tail.position.y = rodLen / 2 + 0.35; g.add(tail);
     }
     wAura(THREE, g, q);
     return g;
   },
 
-  /* 史笔·春秋：毛笔形，笔尖+笔肚+笔杆+笔帽 */
+  /* 史笔·春秋：毛笔形，5 档外观 */
   w_brush(THREE, opts) {
     const g = new THREE.Group();
     const q = Math.max(opts?.qualityLevel ?? 0, opts?.appearanceIdx ?? 0);
+    const a = opts?.appearanceIdx ?? 0;  // 0 白毫 1 乌骨 2 狼毫 3 象牙 4 鸿鹄翎
     const ivory = wMat(THREE, 0xe8d5a0, q);
-    const black = new THREE.MeshStandardMaterial({color:0x181008,roughness:0.8,metalness:0.0});
-    const gold  = wMat(THREE, 0xe0a83e, q);
-    // 笔杆
-    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,3.0,16), ivory);
+    const gold = wMat(THREE, 0xe0a83e, q);
+    const black = new THREE.MeshStandardMaterial({ color: 0x181008, roughness: 0.8, metalness: 0.0 });
+    const whiteJade = new THREE.MeshStandardMaterial({ color: 0xf3e9d6, roughness: 0.15, metalness: 0.3, emissive: 0xf3e9d6, emissiveIntensity: q >= 3 ? 0.15 : 0 });
+    const cinnabar = new THREE.MeshStandardMaterial({ color: 0xc44a2e, roughness: 0.1, metalness: 0.4, emissive: 0xc44a2e, emissiveIntensity: 0.5 });
+    // 笔杆（低档圆杆 / 高档 8 棱柱或象牙白）
+    const rodSeg = a >= 1 ? 8 : 16;
+    const rodColor = a >= 3 ? whiteJade : a >= 1 ? black : ivory;
+    const rodLen = a >= 4 ? 3.6 : a >= 2 ? 3.2 : 3.0;
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, rodLen, rodSeg), rodColor);
     g.add(rod);
-    // 笔肚（锥形）
-    const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.22,0.6,16), black);
-    belly.position.y = -1.62; g.add(belly);
-    // 笔尖——高品质笔尖泛光
+    // 笔肚
+    const belly = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.22, 0.6, 16), black);
+    belly.position.y = -rodLen / 2 - 0.22; g.add(belly);
+    // 笔尖（高档泛朱红）
     const tipMat = new THREE.MeshStandardMaterial({
-      color: 0x181008, roughness: 0.8, metalness: 0.0,
-      emissive: q >= 4 ? 0xe0a83e : 0x000000, emissiveIntensity: q >= 4 ? 0.3 : 0
+      color: a >= 1 ? 0x2a1008 : 0x181008, roughness: 0.7, metalness: 0.0,
+      emissive: a >= 1 ? 0xc44a2e : (q >= 4 ? 0xe0a83e : 0x000000), emissiveIntensity: a >= 1 ? 0.2 + q * 0.04 : (q >= 4 ? 0.3 : 0)
     });
-    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.08,0.55,12), tipMat);
-    tip.position.y = -2.2; g.add(tip);
-    // 金箍（三道）
-    [-0.4,0.4,1.1].forEach(y=>{
-      const band=new THREE.Mesh(new THREE.CylinderGeometry(0.115,0.115,0.07,20), gold);
-      band.position.y=y; g.add(band);
-    });
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.55, 12), tipMat);
+    tip.position.y = -rodLen / 2 - 0.75; g.add(tip);
+    // 金箍（三道→五道 高档越多）
+    const bandCount = a >= 4 ? 5 : a >= 2 ? 4 : 3;
+    for (let i = 0; i < bandCount; i++) {
+      const y = -rodLen / 2 + i * rodLen / (bandCount - 1);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.07, 20), gold);
+      band.position.y = y; g.add(band);
+    }
+    // 祥云纹环（档>=2）
+    if (a >= 2) {
+      [-0.6, 0.6].forEach(y => {
+        const cloud = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.022, 6, 24), gold);
+        cloud.position.y = y; cloud.rotation.x = Math.PI / 2; g.add(cloud);
+      });
+    }
     // 金箍宝石
-    const gemPos = [
-      [0, -0.4, 0.12], [0, 0.4, 0.12], [0, 1.1, 0.12],
-      [0, -0.4, -0.12], [0, 0.4, -0.12], [0, 1.1, -0.12]
-    ];
+    const gemPos = [];
+    for (let i = 0; i < Math.min(bandCount, 6); i++) {
+      const y = -rodLen / 2 + i * rodLen / Math.max(bandCount - 1, 1);
+      gemPos.push([0, y, 0.12]);
+    }
     wGems(THREE, g, gemPos, q);
-    // 笔帽（圆顶）
-    const capBody=new THREE.Mesh(new THREE.CylinderGeometry(0.14,0.12,0.6,16), ivory);
-    capBody.position.y=1.8; g.add(capBody);
-    const capTop=new THREE.Mesh(new THREE.SphereGeometry(0.14,12,12,0,Math.PI*2,0,Math.PI/2), ivory);
-    capTop.position.y=2.1; g.add(capTop);
-    // 高品质笔顶嵌宝
-    if (q >= 3) {
-      const topGem = new THREE.Mesh(
-        new THREE.OctahedronGeometry(0.1, 0),
-        new THREE.MeshStandardMaterial({color: 0xff4444, roughness: 0.1, metalness: 0.3, emissive: 0xff4444, emissiveIntensity: 0.6})
-      );
-      topGem.position.y = 2.3; g.add(topGem);
+    // 笔帽
+    const capH = a >= 3 ? 0.8 : 0.6;
+    const capBody = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, capH, 16), a >= 3 ? whiteJade : ivory);
+    capBody.position.y = rodLen / 2 + capH / 2; g.add(capBody);
+    const capTop = new THREE.Mesh(new THREE.SphereGeometry(0.14, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2), a >= 3 ? whiteJade : ivory);
+    capTop.position.y = rodLen / 2 + capH; g.add(capTop);
+    // 笔顶装饰
+    if (a >= 4) { // 鸿鹄翎：双翼展翅
+      [-1, 1].forEach(s => {
+        const wing = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.4, 6), gold);
+        wing.position.set(s * 0.14, rodLen / 2 + capH + 0.1, s * 0.08);
+        wing.rotation.z = s * 0.4; g.add(wing);
+      });
+    }
+    if (a >= 3 || q >= 3) { // 笔顶嵌朱砂宝
+      const topGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.1, 0), cinnabar);
+      topGem.position.y = rodLen / 2 + capH + (a >= 4 ? 0.2 : 0.05); g.add(topGem);
     }
     wAura(THREE, g, q);
     return g;
   },
 
-  /* 山海杖：节竹杖形，杖首灵兽 + 多节杖身 + 金属底尖 */
+  /* 山海杖：竹节杖形，5 档外观 */
   w_staff(THREE, opts) {
     const g = new THREE.Group();
     const q = Math.max(opts?.qualityLevel ?? 0, opts?.appearanceIdx ?? 0);
+    const a = opts?.appearanceIdx ?? 0;  // 0 竹节 1 桃木 2 铁木 3 九节玉 4 混沌神杖
     const bamboo = wMat(THREE, 0x8a6a2a, q);
-    const node   = wMat(THREE, 0x5a4010, q);
-    const gold   = wMat(THREE, 0xe0a83e, q);
-    const teal   = new THREE.MeshStandardMaterial({color: q >= 3 ? 0x1a6a8a : 0x2a8a7a, roughness: 0.2, metalness: 0.15 + q * 0.08,
-      emissive: q >= 2 ? 0x2a8a7a : 0x000000, emissiveIntensity: q >= 2 ? 0.15 + q * 0.06 : 0});
-    // 杖身（多节）
-    const nodePositions = [-1.8,-0.9,0,0.9,1.8];
-    let lastY = -2.2;
+    const node = wMat(THREE, 0x5a4010, q);
+    const gold = wMat(THREE, 0xe0a83e, q);
+    const jadeMat = new THREE.MeshStandardMaterial({ color: 0x6b8e7b, roughness: 0.15, metalness: 0.5, emissive: 0x6b8e7b, emissiveIntensity: q >= 3 ? 0.2 : 0.08 });
+    const ironMat = wMat(THREE, 0x3a3a3a, q);
+    const teal = new THREE.MeshStandardMaterial({ color: q >= 3 ? 0x1a6a8a : 0x2a8a7a, roughness: 0.2, metalness: 0.15 + q * 0.08,
+      emissive: q >= 2 ? 0x2a8a7a : 0x000000, emissiveIntensity: q >= 2 ? 0.15 + q * 0.06 : 0 });
+    // 杖身（节数按档加密）
+    const segCount = a >= 4 ? 7 : a >= 3 ? 9 : a >= 1 ? 7 : 5;
+    const staffLen = a >= 4 ? 4.8 : a >= 2 ? 4.2 : 4.0;
+    const segLen = staffLen / segCount;
     const gemPos = [];
-    nodePositions.forEach(ny=>{
-      const seg=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,ny-lastY-0.1,12), bamboo);
-      seg.position.y=(ny+lastY)/2+0.05; g.add(seg);
-      const knot=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,0.12,16), node);
-      knot.position.y=ny; g.add(knot);
-      gemPos.push([0, ny, 0.15]);
-      lastY=ny;
-    });
-    // 杖首（龙头）
-    const head=new THREE.Mesh(new THREE.SphereGeometry(0.25,14,14), teal);
-    head.position.y=2.2; head.scale.set(1,1.3,0.9); g.add(head);
-    const snout=new THREE.Mesh(new THREE.SphereGeometry(0.14,10,10), teal);
-    snout.position.set(0,2.18,0.28); g.add(snout);
-    // 龙眼（高品质变宝石）
-    [-1,1].forEach(s=>{
-      const eye=new THREE.Mesh(new THREE.SphereGeometry(0.05 + q * 0.008,8,8), gold);
-      eye.position.set(s*0.13,2.3,0.2); g.add(eye);
-    });
-    // 杖底尖
-    const tip=new THREE.Mesh(new THREE.ConeGeometry(0.09,0.45,8), gold);
-    tip.position.y=-2.42; tip.rotation.x=Math.PI; g.add(tip);
-    // 节点宝石
-    wGems(THREE, g, gemPos, q);
-    // 高品质龙角
-    if (q >= 3) {
-      [-1, 1].forEach(s => {
-        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.3, 6), gold);
-        horn.position.set(s * 0.12, 2.5, 0.1);
-        horn.rotation.z = s * 0.3;
-        g.add(horn);
+    const rodMat = a >= 3 ? jadeMat : a >= 2 ? ironMat : bamboo;
+    const knotMat = a >= 2 ? gold : node;
+    for (let i = 0; i < segCount; i++) {
+      const y = -staffLen / 2 + i * segLen + segLen / 2;
+      const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, segLen - 0.14, 12), rodMat);
+      seg.position.y = y; g.add(seg);
+      if (i < segCount - 1) {
+        const knot = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.12, 16), knotMat);
+        knot.position.y = y + segLen / 2; g.add(knot);
+        gemPos.push([0, y + segLen / 2, 0.15]);
+      }
+    }
+    // 桃木纹（档>=1）
+    if (a >= 1) {
+      const texRing = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.02, 6, 24), gold);
+      texRing.position.y = -0.5; texRing.rotation.x = Math.PI / 3; g.add(texRing);
+    }
+    // 如意环（档>=2）
+    if (a >= 2) {
+      [1.2, -1.2].forEach(y => {
+        const r = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.025, 8, 16), gold);
+        r.position.y = y; r.rotation.x = Math.PI / 2; g.add(r);
       });
     }
+    // 杖首（龙头/麒麟）
+    const headY = staffLen / 2 + 0.3;
+    const headSize = a >= 4 ? 0.32 : a >= 2 ? 0.28 : 0.22;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(headSize, 14, 14), teal);
+    head.position.y = headY; head.scale.set(1, 1.3, 0.9); g.add(head);
+    const snout = new THREE.Mesh(new THREE.SphereGeometry(headSize * 0.55, 10, 10), teal);
+    snout.position.set(0, headY - 0.02, headSize * 1.1); g.add(snout);
+    // 龙眼
+    [-1, 1].forEach(s => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.05 + q * 0.008, 8, 8), gold);
+      eye.position.set(s * 0.13, headY + 0.1, headSize * 0.8); g.add(eye);
+    });
+    // 龙角（档>=2）
+    if (a >= 2 || q >= 3) {
+      [-1, 1].forEach(s => {
+        const horn = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.35, 6), gold);
+        horn.position.set(s * 0.14, headY + 0.35, headSize * 0.5);
+        horn.rotation.z = s * 0.35; g.add(horn);
+      });
+    }
+    // 光蛇纹（档>=4）
+    if (a >= 4) {
+      for (let i = 0; i < 3; i++) {
+        const snake = new THREE.Mesh(new THREE.TorusGeometry(0.15, 0.015, 6, 36), gold);
+        snake.position.y = -staffLen / 2 + i * staffLen / 2;
+        snake.rotation.x = Math.PI / 2 + i * 0.5; g.add(snake);
+      }
+    }
+    // 杖底尖
+    const tip2 = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.45, 8), gold);
+    tip2.position.y = -staffLen / 2 - 0.22; tip2.rotation.x = Math.PI; g.add(tip2);
+    // 宝石
+    wGems(THREE, g, gemPos, q);
     wAura(THREE, g, q);
     return g;
   },
 
-  /* 银针十三支：针盒展开 + 针阵 */
+  /* 银针十三支：针盒 + 针阵，5 档外观 */
   w_needle(THREE, opts) {
     const g = new THREE.Group();
     const q = Math.max(opts?.qualityLevel ?? 0, opts?.appearanceIdx ?? 0);
+    const a = opts?.appearanceIdx ?? 0;  // 0 铁针 1 银针 2 金针 3 玉针 4 神农天针
     const silver = wMat(THREE, 0xd8d8dc, q);
-    const redwood = new THREE.MeshStandardMaterial({color: 0x6a2010, roughness: 0.7, metalness: 0.0});
-    const silk   = new THREE.MeshStandardMaterial({color: 0xc8102e, roughness: 0.9, metalness: 0.0});
-    const handleGold = wMat(THREE, 0xe0a83e, q);
-    // 针盒底座——高品质盒身镶金边
-    const box=new THREE.Mesh(new THREE.BoxGeometry(2.8,0.25,0.6), redwood);
-    box.position.y=-1.5; g.add(box);
-    if (q >= 2) {
-      const goldEdge = new THREE.Mesh(new THREE.BoxGeometry(2.82, 0.04, 0.62), handleGold);
-      goldEdge.position.y = -1.37; g.add(goldEdge);
+    const gold = wMat(THREE, 0xe0a83e, q);
+    const jadeNeedle = new THREE.MeshStandardMaterial({ color: 0x7fae8f, roughness: 0.15, metalness: 0.5, emissive: 0x7fae8f, emissiveIntensity: q >= 3 ? 0.2 : 0.08 });
+    const herbGreen = new THREE.MeshStandardMaterial({ color: 0x5aa469, roughness: 0.1, metalness: 0.3, emissive: 0x5aa469, emissiveIntensity: 0.5 });
+    const iron = wMat(THREE, 0x3a3a3a, q);
+    const redwood = new THREE.MeshStandardMaterial({ color: 0x6a2010, roughness: 0.7, metalness: 0.0 });
+    const silk = new THREE.MeshStandardMaterial({ color: 0xc8102e, roughness: 0.9, metalness: 0.0 });
+    const handleMat = a >= 2 ? gold : a >= 1 ? silver : iron;
+    const needleMat = a >= 3 ? jadeNeedle : a >= 1 ? silver : iron;
+    // 针盒底座
+    const boxW = a >= 3 ? 3.0 : 2.8;
+    const box = new THREE.Mesh(new THREE.BoxGeometry(boxW, 0.25, 0.6), redwood);
+    box.position.y = -1.6; g.add(box);
+    // 金边（档>=1）
+    if (a >= 1) {
+      const goldEdge = new THREE.Mesh(new THREE.BoxGeometry(boxW + 0.02, 0.04, 0.62), gold);
+      goldEdge.position.y = -1.47; g.add(goldEdge);
     }
-    const liner=new THREE.Mesh(new THREE.BoxGeometry(2.6,0.08,0.44), silk);
-    liner.position.y=-1.36; g.add(liner);
-    // 13支针，扇形排列——高品质针更亮
-    const gemPos = [];
-    for(let i=0;i<13;i++){
-      const frac=(i-6)/6;
-      const x=frac*1.22;
-      const angle=frac*0.22;
-      const needle=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.012,2.6,8), silver);
-      needle.position.set(x,0.0,0);
-      needle.rotation.z=angle; g.add(needle);
-      const handle=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.35,10), handleGold);
-      const hx = x + Math.sin(angle) * 1.17;
-      const hy = Math.cos(angle) * 1.17;
-      handle.position.set(hx, hy, 0);
-      handle.rotation.z = angle; g.add(handle);
-      if (i % 2 === 0) gemPos.push([hx, hy + 0.2, 0]);
+    // 内衬
+    const liner = new THREE.Mesh(new THREE.BoxGeometry(boxW - 0.2, 0.08, 0.44), silk);
+    liner.position.y = -1.46; g.add(liner);
+    // 云头盖（档>=2）
+    if (a >= 2) {
+      const lid = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2), gold);
+      lid.position.set(boxW / 2 - 0.1, -1.35, 0); g.add(lid);
     }
-    wGems(THREE, g, gemPos, q);
-    // 高品质盒端嵌宝
-    if (q >= 3) {
-      [-1.3, 1.3].forEach(x => {
-        const gem = new THREE.Mesh(
-          new THREE.OctahedronGeometry(0.08, 0),
-          new THREE.MeshStandardMaterial({color: 0x9a6fd0, roughness: 0.1, metalness: 0.3, emissive: 0x9a6fd0, emissiveIntensity: 0.6})
-        );
-        gem.position.set(x, -1.3, 0);
-        g.add(gem);
+    // 盒端宝石（档>=3）
+    if (a >= 3 || q >= 3) {
+      [-boxW / 2 + 0.1, boxW / 2 - 0.1].forEach(x => {
+        const g2 = new THREE.Mesh(new THREE.OctahedronGeometry(0.08, 0),
+          a >= 4 ? herbGreen : new THREE.MeshStandardMaterial({ color: 0x9a6fd0, roughness: 0.1, metalness: 0.3, emissive: 0x9a6fd0, emissiveIntensity: 0.6 }));
+        g2.position.set(x, -1.4, 0); g.add(g2);
       });
     }
+    // 13 支针
+    const gemPos = [];
+    for (let i = 0; i < 13; i++) {
+      const frac = (i - 6) / 6;
+      const x = frac * 1.22;
+      const angle = frac * 0.22;
+      const n = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.012, 2.6, 8), needleMat);
+      n.position.set(x, 0.0, 0); n.rotation.z = angle; g.add(n);
+      // 螺纹（档>=1）
+      if (a >= 1) {
+        const thread = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.008, 4, 12), gold);
+        thread.position.set(x + Math.sin(angle) * 0.8, Math.cos(angle) * 0.8, 0); g.add(thread);
+      }
+      // 针柄
+      const h = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.35, 10), handleMat);
+      const hx = x + Math.sin(angle) * 1.17;
+      const hy = Math.cos(angle) * 1.17;
+      h.position.set(hx, hy, 0); h.rotation.z = angle; g.add(h);
+      if (i % 2 === 0) gemPos.push([hx, hy + 0.2, 0]);
+      // 针尖泛绿（档>=4）
+      if (a >= 4) {
+        const tipDot = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), herbGreen);
+        tipDot.position.set(x + Math.sin(angle) * -1.25, Math.cos(angle) * -1.25, 0);
+        g.add(tipDot);
+      }
+    }
+    wGems(THREE, g, gemPos, q);
     wAura(THREE, g, q);
     return g;
   }
@@ -507,22 +620,23 @@ function wGems(THREE, group, positions, q) {
     group.add(gem);
   }
 }
-/* 国宝级光环特效 */
+/* 珍品单环 · 国宝双环 —— 品质越高光环越华丽 */
 function wAura(THREE, group, q) {
-  if (q < 4) return;
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(1.4, 0.025, 8, 48),
-    new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.35 })
-  );
-  ring.rotation.x = Math.PI / 2;
-  group.add(ring);
-  const ring2 = new THREE.Mesh(
-    new THREE.TorusGeometry(1.7, 0.015, 8, 48),
-    new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.2 })
-  );
-  ring2.rotation.x = Math.PI / 2;
-  ring2.rotation.z = 0.3;
-  group.add(ring2);
+  if (q < 3) return;
+  if (q >= 3) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(1.4, 0.02, 8, 48),
+      new THREE.MeshBasicMaterial({ color: q >= 4 ? 0xffd700 : 0x9a6fd0, transparent: true, opacity: q >= 4 ? 0.38 : 0.22 })
+    );
+    ring.rotation.x = Math.PI / 2; group.add(ring);
+  }
+  if (q >= 4) {
+    const ring2 = new THREE.Mesh(
+      new THREE.TorusGeometry(1.7, 0.015, 8, 48),
+      new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.25 })
+    );
+    ring2.rotation.x = Math.PI / 2; ring2.rotation.z = 0.3; group.add(ring2);
+  }
 }
 
 /* ---------- 三维观赏器：挂载 + 拖动旋转 + 自转 ---------- */

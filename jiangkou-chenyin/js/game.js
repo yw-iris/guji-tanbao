@@ -1020,7 +1020,7 @@
     mv.style.cssText = "position:fixed;inset:0;z-index:350;background:rgba(6,8,12,.92);display:grid;place-items:center;padding:20px";
     mv.innerHTML = `
       <div style="width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center">
-        <canvas id="wv3d" style="width:100%;height:320px;display:block;border-radius:6px;background:radial-gradient(120% 100% at 50% 30%,#1d2c1f,#0a0f0c);cursor:grab;touch-action:none"></canvas>
+        <canvas id="wv3d" style="width:100%;height:360px;display:block;border-radius:6px;background:radial-gradient(120% 100% at 50% 30%,#1d2c1f,#0a0f0c);cursor:grab;touch-action:none"></canvas>
         <div style="text-align:left;padding:12px 4px 6px">
           <div style="display:flex;align-items:center;gap:10px">
             <span style="color:var(--jade);font-size:18px;letter-spacing:2px">${w.icon} ${w.name}</span>
