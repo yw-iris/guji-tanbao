@@ -179,15 +179,16 @@
         </div>
         <p class="note">史料：《明史》《蜀碧》《荒书》《山海经》《黄帝内经》《本草纲目》</p>
       </section>`;
-    $("#startStory").onclick = () => { newRun("story"); renderStage(); };
-    $("#startInfinite").onclick = () => { newRun("infinite"); renderInfinite(); };
+    const beginStory = () => { newRun("story"); renderStage(); };
+    const beginInfinite = () => { newRun("infinite"); renderInfinite(); };
+    $("#startStory").onclick = () => { if (!G.seenGuide) showGuideModal(beginStory); else beginStory(); };
+    $("#startInfinite").onclick = () => { if (!G.seenGuide) showGuideModal(beginInfinite); else beginInfinite(); };
     $("#btnHome").onclick = () => { window.location.href = COVER; };
     $("#btnGuide").onclick = showGuideModal;
     $("#btnVault").onclick = showVaultModal;
     $("#btnWeapon").onclick = showWeaponModal;
     $("#btnShop").onclick = showShopModal;
     $("#btnBoard").onclick = showLeaderboard;
-    if (!G.seenGuide) showGuideModal();
   }
 
   /* ============================================================
@@ -664,18 +665,18 @@
   /* ============================================================
    *  新手引导
    * ============================================================ */
-  function showGuideModal() {
+  function showGuideModal(onDone) {
     removeModal("guideModal");
     const m = document.createElement("div");
     m.id = "guideModal";
     m.style.cssText = "position:fixed;inset:0;z-index:400;background:rgba(6,8,12,.92);overflow-y:auto;padding:20px;display:grid;place-items:center";
     const steps = [
       { i:"①", t:"答题成长", d:"进入「主线五关」或「无限题库」，<b>答对题目</b>即可获得 <b>银两</b>（每题 +50）与 <b>职业经验</b>。" },
-      { i:"②", t:"解锁职业与武器", d:"某类题目（青铜 / 故宫 / 山海经 / 中医药…）累计答对 <b>5 题</b>，对应<b>职业升至 1 级</b>，并<b>解锁该职业专属武器</b>；继续答对可升至 2、3 级。" },
+      { i:"②", t:"解锁职业与武器", d:"某类题目（江口沉银 / 文物·青铜 / 故宫 / 山海经 / 中医药…）累计答对 <b>5 题</b>，对应<b>职业升至 1 级</b>，并<b>解锁该职业专属武器</b>；继续答对可升至 2、3 级。" },
       { i:"③", t:"银两买弧光", d:"在「✨ 弧光商店」用银两购买 <b>弧光</b>（武器洗练材料）与续命符。弧光是让武器焕新的关键资源。" },
       { i:"④", t:"武器洗练 · 外观焕新", d:"在「⚔ 武器间」用弧光洗练武器，提升<b>词条品质</b>。品质越高，武器外观越华贵、自带流光：凡品 → 良品 → 精品 → 珍品 → 国宝。" },
       { i:"⑤", t:"藏宝与排行", d:"鉴宝所得宝物进入「🏺 藏宝阁」，可<b>出售换银两</b>；你的成绩会记入「🏆 排行榜」。" },
-      { i:"🏠", t:"随时返回合集", d:"点右下角 <b>🏠</b> 可回到《古籍探宝续》封面，切换另一款游戏《鉴藏司·青铜秘案》。" }
+      { i:"🏠", t:"随时返回合集", d:"点右下角 <b>🏠</b> 可回到《古籍探宝续》封面，重温本合集的介绍；封面下方还可直达本作「江口沉银 · 青铜秘案」主线。" }
     ];
     m.innerHTML = `
       <div style="width:100%;max-width:560px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px">
@@ -697,7 +698,7 @@
         <button class="btn primary" id="startGuide" style="width:100%;margin-top:18px;padding:12px;font-size:16px;letter-spacing:2px">开始寻银 →</button>
       </div>`;
     document.body.appendChild(m);
-    const close = () => { G.seenGuide = true; persist(); m.remove(); };
+    const close = () => { G.seenGuide = true; persist(); m.remove(); if (typeof onDone === "function") onDone(); };
     document.getElementById("closeGuide").onclick = close;
     document.getElementById("startGuide").onclick = close;
   }
