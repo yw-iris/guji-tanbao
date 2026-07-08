@@ -226,8 +226,32 @@
     const st = STAGES[S.stageIdx];
     const opts = S._stageShuffledOpts;
     const correct = opts[i].correct;
+    G.totalPlayed++;
     lockOpts(opts.map(o=>o.correct), i);
-    showVerdict(correct, st.explanation, () => {
+    let extra = "";
+    if (correct) {
+      G.totalRight++;
+      G.taels += 50;
+      // 主线归「史学夫子 · 江口沉银」线，答对累计可升职业、解锁专属武器
+      const profGain = addProfExp("江口沉银");
+      if (profGain) {
+        const newLv = profLevel(profGain.key);
+        const p = profGain.p;
+        if (profGain.newExp === 5 || profGain.newExp === 12 || profGain.newExp === 25) {
+          extra = `<p style="color:var(--gold);margin-top:6px">${p.icon} 职业升级！→ <b>${profLevelName(profGain.key)}</b></p>`;
+          if (newLv >= 1 && !G.weapons[p.weapon]) {
+            const w0 = WEAPONS[p.weapon];
+            G.weapons[p.weapon] = {
+              appearanceIdx: 0,
+              parts: w0.partNames.map(pn => ({ name: pn, qualityIdx: 0, traitIdx: 0, appearanceIdx: 0 }))
+            };
+            extra += `<p style="color:var(--ok);font-size:13px">🎉 解锁专属武器：${WEAPONS[p.weapon].name}</p>`;
+          }
+        }
+      }
+    }
+    persist();
+    showVerdict(correct, st.explanation + extra, () => {
       enterAppraise(st.drop, () => {
         // 偶然事件：有 triggerDungeon 配置时以 40% 概率触发
         if (st.triggerDungeon && Math.random() < 0.4) {
