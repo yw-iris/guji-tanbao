@@ -620,9 +620,10 @@ function wGems(THREE, group, positions, q) {
     group.add(gem);
   }
 }
-/* 珍品单环 · 国宝双环 —— 品质越高光环越华丽 */
+/* 珍品单环 · 国宝双环 + 流光粒子 —— 品质越高光环越华丽 */
 function wAura(THREE, group, q) {
   if (q < 3) return;
+  // 光环
   if (q >= 3) {
     const ring = new THREE.Mesh(
       new THREE.TorusGeometry(1.4, 0.02, 8, 48),
@@ -637,6 +638,26 @@ function wAura(THREE, group, q) {
     );
     ring2.rotation.x = Math.PI / 2; ring2.rotation.z = 0.3; group.add(ring2);
   }
+  // 流光粒子：q>=3 有粒子，q>=4 更多更密
+  const particleCount = q >= 4 ? 16 : 8;
+  const positions = new Float32Array(particleCount * 3);
+  const r = q >= 4 ? 2.0 : 1.6;
+  for (let i = 0; i < particleCount; i++) {
+    const phi = Math.acos(2 * Math.random() - 1);
+    const theta = Math.random() * Math.PI * 2;
+    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i * 3 + 2] = r * Math.cos(phi);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const mat = new THREE.PointsMaterial({
+    color: q >= 4 ? 0xffd700 : 0x9a6fd0, size: 0.06, transparent: true, opacity: 0.7,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  const points = new THREE.Points(geo, mat);
+  points.userData.__particles = true;  // 标记供 _animate 独立旋转
+  group.add(points);
 }
 
 /* ---------- 三维观赏器：挂载 + 拖动旋转 + 自转 ---------- */
@@ -709,6 +730,10 @@ class TreasureViewer {
         this.velX *= 0.95; this.velY *= 0.95;
       }
     }
+    // 流光粒子独立自转（反向，更快，形成环绕感）
+    this.group.children.forEach(c => {
+      if (c.userData && c.userData.__particles) c.rotation.y -= 0.012;
+    });
     this.renderer.render(this.scene, this.camera);
   }
 

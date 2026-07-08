@@ -233,8 +233,9 @@
     if (correct) {
       G.totalRight++;
       G.taels += 50;
-      // 主线归「史学夫子 · 江口沉银」线，答对累计可升职业、解锁专属武器
-      const profGain = addProfExp("江口沉银");
+      // 主线 S 归「史学夫子·江口沉银」，青铜秘案 B 归「鉴藏大师·文物·青铜」
+      const stageCat = st.id[0] === 'B' ? "文物·青铜" : "江口沉银";
+      const profGain = addProfExp(stageCat);
       if (profGain) {
         const newLv = profLevel(profGain.key);
         const p = profGain.p;
