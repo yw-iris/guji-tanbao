@@ -8,6 +8,8 @@
           PROFESSIONS, WEAPONS, ARC_ITEMS } = window.GAME_DATA;
   const $ = s => document.querySelector(s);
   const app = document.getElementById("app");
+  // 返回《古籍探宝续》合集封面页（游戏在 jiangkou-chenyin/ 子目录时回到上一级）
+  const COVER = location.pathname.includes("/jiangkou-chenyin/") ? "../" : "./";
 
   /* ===== 持久化 ===== */
   const LS_KEY = "jccy_save_v2";
@@ -30,6 +32,7 @@
     leaderboard:save.leaderboard|| [],   // [{name,score,taels,date}]
     totalRight: save.totalRight || 0,    // 累计答对
     totalPlayed:save.totalPlayed|| 0,    // 累计答题
+    seenGuide: save.seenGuide  || false, // 是否已看过新手引导
   };
   /* 旧存档武器格式迁移：{appearance,traitIdx,qualityIdx} → {parts:[...],appearanceIdx} */
   (function migrateWeapons() {
@@ -51,7 +54,8 @@
   function persist() {
     writeSave({ vault:G.vault, taels:G.taels, arcs:G.arcs, profExp:G.profExp,
                 weapons:G.weapons, leaderboard:G.leaderboard,
-                totalRight:G.totalRight, totalPlayed:G.totalPlayed });
+                totalRight:G.totalRight, totalPlayed:G.totalPlayed,
+                seenGuide:G.seenGuide });
   }
 
   /* ===== 单局状态 ===== */
@@ -119,11 +123,15 @@
     wrap.id = "floatBtns";
     wrap.style.cssText = "position:fixed;bottom:22px;right:18px;z-index:100;display:flex;flex-direction:column;gap:8px;align-items:flex-end";
     wrap.innerHTML = `
+      <button id="fbHome" title="合集封面" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #c9b08a;background:linear-gradient(#232a36,#1a2029);color:#c9b08a;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">🏠</button>
+      <button id="fbHelp" title="新手引导" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #b9a6d6;background:linear-gradient(#232a36,#1a2029);color:#b9a6d6;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">❓</button>
       <button id="fbVault" title="藏宝阁" style="width:50px;height:50px;border-radius:50%;font-size:20px;border:2px solid #e0a83e;background:linear-gradient(#232a36,#1a2029);color:#e0a83e;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">🏺</button>
       <button id="fbWeapon" title="武器间" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #7fae8f;background:linear-gradient(#232a36,#1a2029);color:#7fae8f;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">⚔</button>
       <button id="fbShop" title="弧光商店" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #f4cf7a;background:linear-gradient(#232a36,#1a2029);color:#f4cf7a;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">✨</button>
       <button id="fbBoard" title="排行榜" style="width:44px;height:44px;border-radius:50%;font-size:18px;border:2px solid #4a86c7;background:linear-gradient(#232a36,#1a2029);color:#4a86c7;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.5)">🏆</button>`;
     document.body.appendChild(wrap);
+    document.getElementById("fbHome").onclick = () => { window.location.href = COVER; };
+    document.getElementById("fbHelp").onclick = () => showGuideModal();
     document.getElementById("fbVault").onclick = () => showVaultModal();
     document.getElementById("fbWeapon").onclick = () => showWeaponModal();
     document.getElementById("fbShop").onclick = () => showShopModal();
@@ -162,6 +170,8 @@
           <button class="btn" id="startInfinite">无限题库 · 闯关</button>
         </div>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:22px">
+          <button class="btn ghost" id="btnHome" style="padding:9px 18px;font-size:15px">🏠 合集封面</button>
+          <button class="btn ghost" id="btnGuide" style="padding:9px 18px;font-size:15px">❓ 新手引导</button>
           <button class="btn ghost" id="btnVault" style="padding:9px 18px;font-size:15px">🏺 藏宝阁</button>
           <button class="btn ghost" id="btnWeapon" style="padding:9px 18px;font-size:15px">⚔ 武器间</button>
           <button class="btn ghost" id="btnShop" style="padding:9px 18px;font-size:15px">✨ 弧光商店</button>
@@ -171,10 +181,13 @@
       </section>`;
     $("#startStory").onclick = () => { newRun("story"); renderStage(); };
     $("#startInfinite").onclick = () => { newRun("infinite"); renderInfinite(); };
+    $("#btnHome").onclick = () => { window.location.href = COVER; };
+    $("#btnGuide").onclick = showGuideModal;
     $("#btnVault").onclick = showVaultModal;
     $("#btnWeapon").onclick = showWeaponModal;
     $("#btnShop").onclick = showShopModal;
     $("#btnBoard").onclick = showLeaderboard;
+    if (!G.seenGuide) showGuideModal();
   }
 
   /* ============================================================
@@ -619,6 +632,47 @@
     $("#goVault").onclick=showVaultModal;
     $("#goBoard").onclick=showLeaderboard;
     $("#goHome").onclick=renderStart;
+  }
+
+  /* ============================================================
+   *  新手引导
+   * ============================================================ */
+  function showGuideModal() {
+    removeModal("guideModal");
+    const m = document.createElement("div");
+    m.id = "guideModal";
+    m.style.cssText = "position:fixed;inset:0;z-index:400;background:rgba(6,8,12,.92);overflow-y:auto;padding:20px;display:grid;place-items:center";
+    const steps = [
+      { i:"①", t:"答题成长", d:"进入「主线五关」或「无限题库」，<b>答对题目</b>即可获得 <b>银两</b>（每题 +50）与 <b>职业经验</b>。" },
+      { i:"②", t:"解锁职业与武器", d:"某类题目（青铜 / 故宫 / 山海经 / 中医药…）累计答对 <b>5 题</b>，对应<b>职业升至 1 级</b>，并<b>解锁该职业专属武器</b>；继续答对可升至 2、3 级。" },
+      { i:"③", t:"银两买弧光", d:"在「✨ 弧光商店」用银两购买 <b>弧光</b>（武器洗练材料）与续命符。弧光是让武器焕新的关键资源。" },
+      { i:"④", t:"武器洗练 · 外观焕新", d:"在「⚔ 武器间」用弧光洗练武器，提升<b>词条品质</b>。品质越高，武器外观越华贵、自带流光：凡品 → 良品 → 精品 → 珍品 → 国宝。" },
+      { i:"⑤", t:"藏宝与排行", d:"鉴宝所得宝物进入「🏺 藏宝阁」，可<b>出售换银两</b>；你的成绩会记入「🏆 排行榜」。" },
+      { i:"🏠", t:"随时返回合集", d:"点右下角 <b>🏠</b> 可回到《古籍探宝续》封面，切换另一款游戏《鉴藏司·青铜秘案》。" }
+    ];
+    m.innerHTML = `
+      <div style="width:100%;max-width:560px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <h2 style="color:var(--gold-hi);letter-spacing:2px">❓ 新手引导 · 寻银之路</h2>
+          <button id="closeGuide" style="background:none;border:none;color:var(--dim);font-size:22px;cursor:pointer">✕</button>
+        </div>
+        <p style="color:var(--dim);font-size:13px;margin-bottom:14px">把这五步走通，你就能从「答题」一路玩到「武器流光」。</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${steps.map(s=>`
+            <div style="display:flex;gap:12px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel2)">
+              <div style="font-size:22px;color:var(--gold);min-width:28px;text-align:center;line-height:1.2">${s.i}</div>
+              <div>
+                <div style="font-size:16px;color:var(--silver-hi);margin-bottom:3px">${s.t}</div>
+                <div style="font-size:13px;color:var(--dim);line-height:1.7">${s.d}</div>
+              </div>
+            </div>`).join("")}
+        </div>
+        <button class="btn primary" id="startGuide" style="width:100%;margin-top:18px;padding:12px;font-size:16px;letter-spacing:2px">开始寻银 →</button>
+      </div>`;
+    document.body.appendChild(m);
+    const close = () => { G.seenGuide = true; persist(); m.remove(); };
+    document.getElementById("closeGuide").onclick = close;
+    document.getElementById("startGuide").onclick = close;
   }
 
   /* ============================================================
