@@ -2,26 +2,130 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>江口沉银 · 寻银诀 — 古籍探宝解密 · 历史副本 · 鉴宝观赏</title>
-  <meta name="description" content="基于张献忠江口沉银真实史料的探宝解密游戏：五关古籍解谜、穿越历史副本与史人对话、擦拭鉴宝开品质词条、三维宝物多视角观赏。">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>古籍探宝续 — 穿越古籍的解密之旅</title>
+  <meta name="description" content="古籍探宝续：江口沉银·寻银诀 与 鉴藏司·青铜秘案 两款古籍文物解谜游戏的合集入口。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&display=swap">
-  <link rel="stylesheet" href="./css/style.css">
+  <style>
+    :root{
+      --ink:#1c1714; --paper:#f3e9d6; --paper2:#e7d8bd;
+      --bronze:#9c6b3f; --bronze-l:#c79a5b; --gold:#d9b25b;
+      --jade:#5b8c6e; --red:#a8442a;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:"Noto Serif SC",serif;
+      color:var(--paper);
+      background:
+        radial-gradient(circle at 20% 15%, rgba(199,154,91,.18), transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(91,140,110,.14), transparent 45%),
+        linear-gradient(160deg,#241c16,#15100c 70%);
+      min-height:100%;
+      display:flex;flex-direction:column;align-items:center;
+      padding:clamp(24px,6vw,72px) 18px 40px;
+    }
+    .brand{
+      text-align:center;margin-bottom:10px;
+    }
+    .seal{
+      display:inline-block;font-size:13px;letter-spacing:.4em;
+      color:var(--gold);border:1px solid rgba(217,178,91,.5);
+      padding:5px 14px 5px 18px;border-radius:4px;
+      background:rgba(217,178,91,.06);
+    }
+    h1{
+      font-size:clamp(40px,9vw,76px);font-weight:900;letter-spacing:.12em;
+      margin:18px 0 6px;
+      background:linear-gradient(180deg,#f6e7c4,#c79a5b 80%);
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+      text-shadow:0 2px 0 rgba(0,0,0,.25);
+    }
+    .subtitle{
+      font-size:clamp(14px,3.4vw,19px);color:#cdbfa6;letter-spacing:.22em;
+    }
+    .lead{
+      max-width:640px;text-align:center;color:#b9ac92;
+      font-size:15px;line-height:2;margin:22px auto 6px;
+    }
+    .rule{
+      width:120px;height:1px;margin:26px auto;
+      background:linear-gradient(90deg,transparent,var(--bronze-l),transparent);
+    }
+    .games{
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:22px;width:100%;max-width:860px;margin-top:6px;
+    }
+    .card{
+      position:relative;display:block;text-decoration:none;color:inherit;
+      border:1px solid rgba(199,154,91,.32);border-radius:14px;
+      padding:30px 26px;overflow:hidden;
+      background:linear-gradient(155deg,rgba(243,233,214,.05),rgba(243,233,214,.015));
+      transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;
+    }
+    .card:hover{
+      transform:translateY(-6px);
+      border-color:var(--gold);
+      box-shadow:0 16px 40px rgba(0,0,0,.45),0 0 0 1px rgba(217,178,91,.25) inset;
+    }
+    .card .tag{
+      font-size:12px;letter-spacing:.28em;color:var(--gold);
+    }
+    .card h2{
+      font-size:27px;font-weight:900;margin:12px 0 4px;letter-spacing:.06em;
+    }
+    .card .en{font-size:12px;color:#9c8f78;letter-spacing:.12em;margin-bottom:14px}
+    .card p{font-size:14px;line-height:1.95;color:#c4b79e}
+    .card .enter{
+      margin-top:18px;display:inline-flex;align-items:center;gap:8px;
+      font-size:14px;color:var(--gold);letter-spacing:.1em;
+    }
+    .card .enter::after{content:"›";font-size:20px;line-height:1}
+    .card.jk{background:linear-gradient(155deg,rgba(156,107,63,.16),rgba(168,68,42,.05))}
+    .card.js{background:linear-gradient(155deg,rgba(91,140,110,.14),rgba(156,107,63,.05))}
+    footer{
+      margin-top:46px;text-align:center;color:#8a7d66;
+      font-size:12px;letter-spacing:.14em;line-height:2;
+    }
+    footer a{color:var(--bronze-l);text-decoration:none}
+  </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div class="brand">
+    <span class="seal">古 籍 探 宝 续</span>
+  </div>
+  <h1>古籍探宝续</h1>
+  <div class="subtitle">穿 越 古 籍 的 解 密 之 旅</div>
 
-  <!-- Three.js（UMD 全局 THREE，用于三维宝物观赏） -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <p class="lead">
+    两套以真实文物与史料为骨、以解谜为魂的网页游戏。
+    在江底沉银里破局，在青铜重器中辨伪——每一次选择，都通向一段被掩埋的历史。
+  </p>
 
-  <!-- 数据层：史料谜题 / 历史副本 / 宝物 -->
-  <script src="./js/data.js"></script>
-  <!-- 三维宝物模型 + 观赏器 -->
-  <script src="./js/artifacts3d.js"></script>
-  <!-- 墨家机关小游戏（华容道 · 鲁班锁） -->
-  <script src="./js/minigames.js"></script>
-  <!-- 游戏逻辑 -->
-  <script src="./js/game.js"></script>
+  <div class="rule"></div>
+
+  <main class="games">
+    <a class="card jk" href="./jiangkou-chenyin/">
+      <span class="tag">江 口 沉 银</span>
+      <h2>寻银诀</h2>
+      <div class="en">THE SUNKEN SILVER</div>
+      <p>据张献忠江口沉银史料：五关古籍解谜、穿越历史副本与史人对话、墨家机关（华容道·鲁班锁）、三维宝物多视角观赏与鉴宝开词条。</p>
+      <span class="enter">进入游戏</span>
+    </a>
+
+    <a class="card js" href="./guji-jianshang/">
+      <span class="tag">鉴 藏 司</span>
+      <h2>青铜秘案</h2>
+      <div class="en">THE BRONZE CASES</div>
+      <p>你扮演鉴藏司新晋鉴藏师，破解九件青铜重器的谜案：辨形、读铭、断代、识伪。每一案皆据真实文物与史料，答案标注出处。</p>
+      <span class="enter">进入游戏</span>
+    </a>
+  </main>
+
+  <footer>
+    古籍探宝续 · 网页解谜合集<br>
+    所有内容基于公开史料与文物资料，仅供学习与娱乐
+  </footer>
 </body>
 </html>
