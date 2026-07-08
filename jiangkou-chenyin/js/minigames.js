@@ -361,6 +361,7 @@
       this.removed = new Set();
       this.wrongCount = 0;
       this.solved = false;
+      this.flashes = {};
 
       // 六柱定义：轴向、位置、滑出方向、颜色、名称
       // blockBy 声明此柱被哪些柱卡住——须先拆走阻塞者方可取出
@@ -384,7 +385,7 @@
       wrap.innerHTML = `
         <div class="lb-bar">
           <span class="lb-progress">已拆：<b id="lbCount">0</b> / 6</span>
-          <span class="lb-goal">点击可滑出的柱子将其拆下</span>
+          <span class="lb-goal">发光的柱子可拆下，点它即可滑出</span>
         </div>
         <div class="lb-canvas-wrap">
           <canvas id="lbCanvas" class="lb-canvas"></canvas>
@@ -394,7 +395,7 @@
           <button class="btn ghost lb-btn" id="lbReset">重置</button>
           <button class="btn ghost lb-btn" id="lbHintBtn">提示</button>
         </div>
-        <p class="lb-tip">六柱互锁，须按正确顺序逐一拆解。被卡住的柱子无法取出。</p>`;
+        <p class="lb-tip">六柱互锁，须按正确顺序逐一拆解。<b style="color:var(--gold-hi)">发光的柱子</b>当前可拆；点被卡住的柱子，会高亮出阻碍它的柱子。</p>`;
       c.appendChild(wrap);
       this.countEl = c.querySelector("#lbCount");
       this.hintEl = c.querySelector("#lbHint");
@@ -489,9 +490,19 @@
       return mesh;
     }
 
+    blockersOf(idx) {
+      // 当前仍卡住本柱、尚未拆走的阻塞者
+      return this.defs[idx].blockBy.filter(b => !this.removed.has(b));
+    }
     isRemovable(idx) {
-      const def = this.defs[idx];
-      return def.blockBy.every(b => this.removed.has(b));
+      // 机关判定：未拆走 且 所有阻塞者均已移除，方可滑出
+      return !this.removed.has(idx) && this.blockersOf(idx).length === 0;
+    }
+    freePieces() {
+      // 当前可拆的柱子集合（判定结果的对外视图）
+      const out = [];
+      for (let i = 0; i < this.defs.length; i++) if (this.isRemovable(i)) out.push(i);
+      return out;
     }
 
     bindInteract() {
@@ -581,11 +592,15 @@
       } else {
         this.wrongCount++;
         this.shake(idx);
-        const blockers = def.blockBy.filter(b => !this.removed.has(b)).map(b => this.defs[b].name);
-        if (this.wrongCount >= 3) {
-          this.flashHint(`✘ ${def.name}被「${blockers.join("、")}」卡住，须先拆之。`, false);
+        // 机关判定反馈：高亮真正卡住本柱的柱子，让玩家看清阻碍者
+        const blockers = this.blockersOf(idx);
+        const now = performance.now();
+        blockers.forEach(b => { this.flashes[b] = { type: "blocker", until: now + 1400 }; });
+        const names = blockers.map(b => this.defs[b].name);
+        if (this.wrongCount >= 2 || names.length <= 1) {
+          this.flashHint(`✘ ${def.name}被「${names.join("、")}」卡住，须先拆之。`, false);
         } else {
-          this.flashHint(`✘ ${def.name}纹丝不动，尚有他柱卡住。`, false);
+          this.flashHint(`✘ ${def.name}纹丝不动，尚有其他柱子卡住。`, false);
         }
       }
     }
@@ -631,16 +646,17 @@
 
     showHint() {
       if (this.solved || !this.pieceMeshes) return;
-      for (let i = 0; i < this.defs.length; i++) {
-        if (!this.removed.has(i) && this.isRemovable(i)) {
-          const mesh = this.pieceMeshes[i];
-          const orig = mesh.material.emissiveIntensity;
-          mesh.material.emissiveIntensity = 1.2;
-          setTimeout(() => { mesh.material.emissiveIntensity = orig; }, 1500);
-          this.flashHint(`提示：${this.defs[i].name}可以滑出`, true);
-          return;
-        }
+      const free = this.freePieces();
+      if (free.length === 0) return;
+      // 优先提示「解锁后续最多」的柱：其本身被越多柱依赖，越该先拆
+      let pick = free[0], best = -1;
+      for (const i of free) {
+        const dependents = this.defs.filter(d => d.blockBy.includes(i)).length;
+        if (dependents > best) { best = dependents; pick = i; }
       }
+      const now = performance.now();
+      this.flashes[pick] = { type: "hint", until: now + 2000 };
+      this.flashHint(`提示：发光的「${this.defs[pick].name}」现在可以滑出`, true);
     }
 
     flashHint(text, ok) {
@@ -676,6 +692,7 @@
       this.removed.clear();
       this.solved = false;
       this.wrongCount = 0;
+      this.flashes = {};
       if (this.countEl) this.countEl.textContent = "0";
       if (this.hintEl) { this.hintEl.textContent = "拖动旋转 · 点击柱子尝试���解"; this.hintEl.style.color = ""; }
       const banner = this.container.querySelector(".lb-solved");
@@ -700,7 +717,45 @@
         if (this.autoRotate) this.group.rotation.y += 0.005;
         else { this.group.rotation.y += this.velX; this.velX *= 0.95; }
       }
+      this._highlight();
       this.renderer.render(this.scene, this.camera);
+    }
+
+    /* 把机关判定结果可视化：
+     *  · 当前可拆的柱子 → 柔和金色脉动（一眼看出下一步）
+     *  · 被卡柱点击后 → 阻碍它的柱子红色高亮
+     *  · 提示 → 目标柱白色高亮
+     * 全部基于 isRemovable / blockersOf 这一套判定，单一数据源。 */
+    _highlight() {
+      if (!this.pieceMeshes) return;
+      const now = performance.now();
+      this.pieceMeshes.forEach((mesh, i) => {
+        if (this.removed.has(i)) return;
+        const def = this.defs[i];
+        const flash = this.flashes[i];
+        let hex = def.color, intensity;
+        if (flash && now < flash.until) {
+          if (flash.type === "blocker") {
+            hex = 0xff4530;
+            intensity = 0.9 + 0.35 * Math.sin(now * 0.02);
+          } else { // hint
+            hex = 0xfff0b0;
+            intensity = 0.7 + 0.35 * Math.sin(now * 0.012);
+          }
+        } else if (this.isRemovable(i)) {
+          intensity = 0.30 + 0.22 * Math.sin(now * 0.006 + i);
+        } else {
+          intensity = 0.12;
+        }
+        mesh.material.emissive.setHex(hex);
+        mesh.material.emissiveIntensity = intensity;
+        mesh.children.forEach(c => {
+          if (c.material && c.material.emissive) {
+            c.material.emissive.setHex(hex);
+            c.material.emissiveIntensity = intensity;
+          }
+        });
+      });
     }
 
     _resize() {
