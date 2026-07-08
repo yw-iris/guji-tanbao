@@ -252,14 +252,17 @@
     }
     persist();
     showVerdict(correct, st.explanation + extra, () => {
-      enterAppraise(st.drop, () => {
+      const afterAppraise = () => {
         // 偶然事件：有 triggerDungeon 配置时以 40% 概率触发
         if (st.triggerDungeon && Math.random() < 0.4) {
           enterDungeon(st.triggerDungeon, ()=>advanceStage());
         } else {
           advanceStage();
         }
-      });
+      };
+      // 青铜秘案等无掉落关卡：跳过鉴宝直接继续
+      if (st.drop) enterAppraise(st.drop, afterAppraise);
+      else afterAppraise();
     }, correct ? "破关 · 起获宝物 →" : "记下考据 · 继续 →");
   }
 
